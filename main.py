@@ -1,48 +1,58 @@
-import requests
-import json
-import pprint
+import time
+import datetime
+
+from Classes import Streamer
+from lib import TwitchLib
 
 from General import Functions, Constants
 
 
-def get_oauth_dict(client_id, client_secret):
-    oauth = requests.post(
-        "https://id.twitch.tv/oauth2/token?client_id={}&client_secret={}&grant_type=client_credentials".format(
-            client_id,
-            client_secret
-        )
-    )
-    return oauth.json()
-
-
 def main():
-
-    pp = pprint.PrettyPrinter(indent=4)
 
     credentials_dict = Functions.parse_json(Constants.credentials_file_path)
 
-    oauth_dict = get_oauth_dict(credentials_dict["client_id"], credentials_dict["secret"])
-    pp.pprint(oauth_dict)
+    oauth_dict = TwitchLib.get_oauth_dict(credentials_dict["client_id"], credentials_dict["secret"])
 
-    url = "https://api.twitch.tv/helix/search/channels?query=comfy_coder"
-    res = requests.get(
-        url,
-        headers={
-            "client-id": credentials_dict["client_id"],
-            'Authorization': "Bearer " + oauth_dict["access_token"]
-        }
+    streamer = Streamer.Streamer(
+        credentials_dict=credentials_dict,
+        oauth_dict=oauth_dict,
+        **TwitchLib.get_streamer_dict(credentials_dict["client_id"], oauth_dict["access_token"])["data"][0]
     )
-    pp.pprint(res.json())
 
-    res = requests.get(
-        url="https://api.twitch.tv/helix/users/follows?to_id={}".format(589965916),
-        headers={
-            "client-id": credentials_dict["client_id"],
-            'Authorization': "Bearer " + oauth_dict["access_token"]
-        }
-    )
-    pp.pprint(res.json())
-
+    print("Current followers as of {}:".format(Functions.get_pretty_time(datetime.datetime.now())))
+    for follower in streamer.get_follower_list():
+        print(
+            "\t{} | name: {}  id: {}".format(
+                Functions.get_pretty_time(follower.followed_at),
+                Functions.str_to_length(follower.from_name, 18),
+                follower.from_id
+            )
+        )
+    print("-------------\n")
+    prev_follower_list = streamer.get_follower_list()
+    print("Listening for follower changes... (takes a bit to update in the API)")
+    while True:
+        curr_follower_list = streamer.get_follower_list()
+        for prev_follower in prev_follower_list:
+            if prev_follower not in curr_follower_list:
+                print(
+                    "\tLost follower! - {} | name: {}  id: {}".format(
+                        Functions.get_pretty_time(prev_follower.followed_at),
+                        Functions.str_to_length(prev_follower.from_name, 18),
+                        prev_follower.from_id
+                    )
+                )
+        for curr_follower in curr_follower_list:
+            if curr_follower not in prev_follower_list:
+                print(
+                    "\tNew follower! - {}  | name: {}  id: {}".format(
+                        Functions.get_pretty_time(curr_follower.followed_at),
+                        Functions.str_to_length(curr_follower.from_name, 18),
+                        curr_follower.from_id
+                    )
+                )
+        prev_follower_list = curr_follower_list
+        time.sleep(4)
 
 
 main()
