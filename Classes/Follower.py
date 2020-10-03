@@ -17,7 +17,8 @@ class Follower:
         return self.from_id == other.from_id
 
     def __str__(self):
-        return "Follower - name: {}  followed_at: {}".format(
-            self.from_name,
-            Functions.get_pretty_time(self.followed_at)
+        return "{} | name: {}  id: {}".format(
+            Functions.get_pretty_time(self.followed_at),
+            Functions.str_to_length(self.from_name, 18),
+            self.from_id
         )
