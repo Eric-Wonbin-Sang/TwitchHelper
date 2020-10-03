@@ -22,3 +22,7 @@ def parse_json(json_path):
 
 def get_pretty_time(some_datetime):
     return some_datetime.strftime("%Y/%m/%d %I:%M%p")
+
+
+def tab_str(some_str, tab_count):
+    return ("\t" * tab_count) + some_str.replace("\n", "\n" + ("\t" * tab_count))
