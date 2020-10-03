@@ -1,3 +1,5 @@
+import time
+
 from Classes import Follower
 from lib import TwitchLib
 
@@ -29,6 +31,20 @@ class Streamer:
         for data_dict in response_dict["data"]:
             follower_list.append(Follower.Follower(**data_dict))
         return follower_list
+
+    def listen_for_followers(self):
+        prev_follower_list = self.get_follower_list()
+        print("Listening for follower changes... (takes a bit to update in the API)")
+        while True:
+            curr_follower_list = self.get_follower_list()
+            for prev_follower in prev_follower_list:
+                if prev_follower not in curr_follower_list:
+                    print("\tLost follower! - " + str(prev_follower))
+            for curr_follower in curr_follower_list:
+                if curr_follower not in prev_follower_list:
+                    print("\tNew follower!  - " + str(curr_follower))
+            prev_follower_list = curr_follower_list
+            time.sleep(4)
 
     def __str__(self):
         return "Streamer - name: {}  id: {}".format(
